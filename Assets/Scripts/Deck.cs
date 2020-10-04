@@ -48,6 +48,7 @@ public class Deck : MonoBehaviour
         if (cardPool.Count > 0)
         {
             cardObject = cardPool.First.Value;
+            cardObject.SetActive(true);
             cardPool.RemoveFirst();
         }
         else
@@ -60,6 +61,13 @@ public class Deck : MonoBehaviour
         card.spriteRenderer.sprite = data.sprite;
         card.FaceUp = faceUp;
         return card;
+    }
+
+    public void Discard(Card card)
+    {
+        cardPool.AddLast(card.gameObject);
+        card.transform.parent = transform;
+        card.gameObject.SetActive(false);
     }
 
     private void Update()
