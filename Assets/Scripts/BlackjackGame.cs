@@ -13,19 +13,36 @@ public class BlackjackGame : MonoBehaviour
     public Player dealer;
     public List<Player> players;
     public Deck deck;
+    public GameObject betPanel;
     public GameObject actionPanel;
     public GameObject endRoundPanel;
     public TextMeshProUGUI playerPrompt;
+    public BetUI betUI;
 
     int currentPlayer = 0;
 
     void Start()
     {
-        Deal();
+        
+    }
+
+    public void PlaceBet()
+    {
+        players[currentPlayer].Bet = betUI.BetAmount;
+        players[currentPlayer].UpdateBet();
+
+        currentPlayer++;
+        if (currentPlayer == players.Count)
+        {
+            Deal();
+            betPanel.SetActive(false);
+            actionPanel.SetActive(true);
+        }
     }
 
     void Deal()
     {
+        currentPlayer = 0;
         foreach (Player player in players)
         {
             for (int i = 0; i < 2; ++i)
@@ -33,12 +50,16 @@ public class BlackjackGame : MonoBehaviour
                 bool faceUp = true;
                 player.DealCard(deck.DrawCard(faceUp));
             }
+
+            if (player.GetValue() > BLACKJACK_GOAL)
+            {
+                player.Lose();
+                currentPlayer++;
+            }
         }
 
         dealer.DealCard(deck.DrawCard(true));
         dealer.DealCard(deck.DrawCard(false));
-
-        currentPlayer = 0;
         NextPlayer();
     }
 
@@ -53,6 +74,11 @@ public class BlackjackGame : MonoBehaviour
     public void Hit()
     {
         players[currentPlayer].DealCard(deck.DrawCard(true));
+        if (players[currentPlayer].GetValue() > BLACKJACK_GOAL)
+        {
+            players[currentPlayer].Lose();
+            Stay();
+        }
     }
 
     public void Stay()
@@ -85,26 +111,28 @@ public class BlackjackGame : MonoBehaviour
         dealer.UpdateValue();
 
         int dealerValue = dealer.GetValue();
-        if (dealerValue > BLACKJACK_GOAL)
+        bool dealerBusts = dealerValue > BLACKJACK_GOAL;
+        
+        foreach (Player player in players)
         {
-            // Dealer busts; everyone wins!
-            foreach (Player player in players)
+            int playerValue = player.GetValue();
+            if (playerValue <= BLACKJACK_GOAL)
             {
-                player.valueText.text = "WIN";
-            }
-        }
-        else
-        {
-            foreach (Player player in players)
-            {
-                int playerValue = player.GetValue();
-                if (playerValue > BLACKJACK_GOAL || playerValue <= dealerValue)
+                if (dealerBusts || playerValue > dealerValue)
                 {
-                    player.valueText.text = "LOSE";
+                    player.Win();
+                }
+                else if (playerValue < dealerValue)
+                {
+                    player.Lose();
+                }
+                else if (playerValue == BLACKJACK_GOAL && player.GetCards().Count == 2 && dealer.GetCards().Count > 2)
+                {
+                    player.Win();
                 }
                 else
                 {
-                    player.valueText.text = "WIN";
+                    player.Tie();
                 }
             }
         }
@@ -124,8 +152,8 @@ public class BlackjackGame : MonoBehaviour
             player.ClearCards();
         }
 
-        Deal();
-        actionPanel.SetActive(true);
+        currentPlayer = 0;
+        betPanel.SetActive(true);
         endRoundPanel.SetActive(false);
     }
 }

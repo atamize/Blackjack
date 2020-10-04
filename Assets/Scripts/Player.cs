@@ -8,13 +8,18 @@ public class Player : MonoBehaviour
     public Transform[] cardSlots;
     public TextMeshPro nameText;
     public TextMeshPro valueText;
+    public TextMeshPro moneyText;
+    public TextMeshPro betText;
 
     List<Card> cards = new List<Card>();
+    public int Money { get; set; }
+    public int Bet { get; set; }
 
     // Start is called before the first frame update
     void Start()
     {
-        
+        Money = 100;
+        UpdateMoney();
     }
 
     public void DealCard(Card card)
@@ -62,6 +67,42 @@ public class Player : MonoBehaviour
         return sum;
     }
 
+    public void Win()
+    {
+        if (cards.Count == 2 && GetValue() == BlackjackGame.BLACKJACK_GOAL)
+        {
+            valueText.text = "BLACKJACK";
+        }
+        else
+        {
+            valueText.text = "WIN";
+        }
+        Money += Bet;
+        UpdateMoney();
+    }
+
+    public void Lose()
+    {
+        valueText.text = "LOSE";
+        Money -= Bet;
+        UpdateMoney();
+    }
+
+    public void Tie()
+    {
+        valueText.text = "TIE";
+    }
+
+    public void UpdateBet()
+    {
+        betText.text = string.Format("Bet: ${0}", Bet);
+    }
+
+    public void UpdateMoney()
+    {
+        moneyText.text = string.Format("Money: ${0}", Money);
+    }
+
     public void UpdateValue()
     {
         int value = GetValue();
@@ -84,6 +125,7 @@ public class Player : MonoBehaviour
     public void ClearCards()
     {
         cards.Clear();
+        betText.text = string.Empty;
         UpdateValue();
     }
 }
