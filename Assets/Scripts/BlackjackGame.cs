@@ -23,7 +23,12 @@ public class BlackjackGame : MonoBehaviour
 
     void Start()
     {
-        
+        NextBet();
+    }
+
+    void NextBet()
+    {
+        betUI.prompt.text = string.Format("{0}, place your bet", players[currentPlayer].nameText.text);
     }
 
     public void PlaceBet()
@@ -38,6 +43,10 @@ public class BlackjackGame : MonoBehaviour
             betPanel.SetActive(false);
             actionPanel.SetActive(true);
         }
+        else
+        {
+            NextBet();
+        }
     }
 
     void Deal()
@@ -51,9 +60,14 @@ public class BlackjackGame : MonoBehaviour
                 player.DealCard(deck.DrawCard(faceUp));
             }
 
-            if (player.GetValue() > BLACKJACK_GOAL)
+            int value = player.GetValue();
+            if (value > BLACKJACK_GOAL)
             {
                 player.Lose();
+                currentPlayer++;
+            }
+            else if (value == BLACKJACK_GOAL)
+            {
                 currentPlayer++;
             }
         }
@@ -85,6 +99,20 @@ public class BlackjackGame : MonoBehaviour
     {
         currentPlayer++;
         NextPlayer();
+    }
+
+    public void DoubleDown()
+    {
+        int player = currentPlayer;
+        players[currentPlayer].Bet *= 2;
+        players[currentPlayer].UpdateBet();
+        Hit();
+
+        // Busting automatically advances to the next player, so only stay if still alive
+        if (player == currentPlayer)
+        {
+            Stay();
+        }
     }
 
     void NextPlayer()
@@ -153,6 +181,7 @@ public class BlackjackGame : MonoBehaviour
         }
 
         currentPlayer = 0;
+        NextBet();
         betPanel.SetActive(true);
         endRoundPanel.SetActive(false);
     }
