@@ -2,6 +2,9 @@
 using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
+using System.IO;
+using System.Runtime.Serialization.Formatters.Binary;
+using System.Runtime.Serialization;
 
 public class BlackjackGame : MonoBehaviour
 {
@@ -20,9 +23,11 @@ public class BlackjackGame : MonoBehaviour
     public BetUI betUI;
 
     int currentPlayer = 0;
+    string savePath;
 
     void Start()
     {
+        savePath = Application.persistentDataPath + "/save.dat";
         NextBet();
     }
 
@@ -74,6 +79,9 @@ public class BlackjackGame : MonoBehaviour
 
         dealer.DealCard(deck.DrawCard(true));
         dealer.DealCard(deck.DrawCard(false));
+
+        Save();
+
         NextPlayer();
     }
 
@@ -88,16 +96,29 @@ public class BlackjackGame : MonoBehaviour
     public void Hit()
     {
         players[currentPlayer].DealCard(deck.DrawCard(true));
-        if (players[currentPlayer].GetValue() > BLACKJACK_GOAL)
+        int value = players[currentPlayer].GetValue();
+        if (value > BLACKJACK_GOAL)
         {
             players[currentPlayer].Lose();
             Stay();
+        }
+        else if (value == BLACKJACK_GOAL)
+        {
+            Stay();
+        }
+        else
+        {
+            Save();
         }
     }
 
     public void Stay()
     {
         currentPlayer++;
+        if (currentPlayer < players.Count) // Avoid doing a double save when round ends
+        {
+            Save();
+        }
         NextPlayer();
     }
 
@@ -126,6 +147,7 @@ public class BlackjackGame : MonoBehaviour
             actionPanel.SetActive(false);
             endRoundPanel.SetActive(true);
             EvaluateRound();
+            Save();
         }
     }
 
@@ -140,7 +162,7 @@ public class BlackjackGame : MonoBehaviour
 
         int dealerValue = dealer.GetValue();
         bool dealerBusts = dealerValue > BLACKJACK_GOAL;
-        
+
         foreach (Player player in players)
         {
             int playerValue = player.GetValue();
@@ -184,5 +206,108 @@ public class BlackjackGame : MonoBehaviour
         NextBet();
         betPanel.SetActive(true);
         endRoundPanel.SetActive(false);
+    }
+
+    [System.Serializable]
+    class PlayerData
+    {
+        public int money;
+        public int bet;
+        public List<int> cards;
+    }
+
+    [System.Serializable]
+    class GameData
+    {
+        public List<PlayerData> playerData;
+        public List<int> dealerCards;
+        public List<int> deckCards;
+        public int deckUsedCount;
+        public int currentPlayer;
+    }
+
+    void Save()
+    {
+        BinaryFormatter bf = new BinaryFormatter();
+        FileStream file = File.Create(savePath);
+        
+        GameData gameData = new GameData();
+        gameData.playerData = new List<PlayerData>();
+        foreach (Player player in players)
+        {
+            PlayerData playerData = new PlayerData();
+            playerData.money = player.Money;
+            playerData.bet = player.Bet;
+            playerData.cards = new List<int>();
+
+            foreach (Card card in player.GetCards())
+            {
+                playerData.cards.Add(card.cardData.id);
+            }
+            gameData.playerData.Add(playerData);
+        }
+        gameData.currentPlayer = currentPlayer;
+        gameData.dealerCards = new List<int>();
+        foreach (Card card in dealer.GetCards())
+        {
+            gameData.dealerCards.Add(card.cardData.id);
+        }
+
+        gameData.deckCards = new List<int>();
+        gameData.deckUsedCount = deck.GetSaveData(gameData.deckCards);
+
+        bf.Serialize(file, gameData);
+        file.Close();
+    }
+
+    public void Load()
+    {
+        if (File.Exists(savePath))
+        {
+            BinaryFormatter bf = new BinaryFormatter();
+            FileStream file = File.Open(savePath, FileMode.Open);
+            GameData gameData = (GameData)bf.Deserialize(file);
+            file.Close();
+
+            currentPlayer = gameData.currentPlayer;
+            bool roundInProgress = currentPlayer < players.Count;
+
+            for (int i = 0; i < gameData.dealerCards.Count; ++i)
+            {
+                bool faceUp = !roundInProgress || i == 0;
+                dealer.DealCard(deck.SpawnCard(gameData.dealerCards[i], faceUp));
+            }
+
+            for (int i = 0; i < gameData.playerData.Count; ++i)
+            {
+                PlayerData playerData = gameData.playerData[i];
+                players[i].Bet = playerData.bet;
+                players[i].Money = playerData.money;
+                players[i].UpdateBet();
+                players[i].UpdateMoney();
+
+                foreach (int id in playerData.cards)
+                {
+                    players[i].DealCard(deck.SpawnCard(id, true));
+                }
+                players[i].UpdateValue();
+            }
+
+            deck.Initialize(gameData.deckUsedCount, gameData.deckCards);
+
+            if (roundInProgress)
+            {
+                actionPanel.SetActive(true);
+                betPanel.SetActive(false);
+                endRoundPanel.SetActive(false);
+                NextPlayer();
+            }
+            else
+            {
+                actionPanel.SetActive(false);
+                betPanel.SetActive(false);
+                endRoundPanel.SetActive(true);
+            }
+        }
     }
 }

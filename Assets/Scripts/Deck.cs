@@ -14,6 +14,7 @@ public class Deck : MonoBehaviour
 
     private void Awake()
     {
+        cardDatabase.AssignIds();
         currentDeck = new List<CardData>();
         for (int i = 0; i < numDecks; ++i)
         {
@@ -63,11 +64,44 @@ public class Deck : MonoBehaviour
         return card;
     }
 
+    public Card SpawnCard(int id, bool faceUp)
+    {
+        CardData data = cardDatabase.cards[id];
+        GameObject cardObject = Instantiate(cardPrefab);
+        Card card = cardObject.GetComponent<Card>();
+        card.cardData = data;
+        card.spriteRenderer.sprite = data.sprite;
+        card.FaceUp = faceUp;
+        return card;
+    }
+
     public void Discard(Card card)
     {
         cardPool.AddLast(card.gameObject);
         card.transform.parent = transform;
         card.gameObject.SetActive(false);
+    }
+
+    public int GetSaveData(List<int> cards)
+    {
+        for (int i = 0; i < currentDeck.Count; ++i)
+        {
+            cards.Add(currentDeck[i].id);
+        }
+        return usedCount;
+    }
+
+    public void Initialize(int used, List<int> cards)
+    {
+        if (cards.Count > 0)
+        {
+            currentDeck.Clear();
+            for (int i = 0; i < cards.Count; ++i)
+            {
+                currentDeck.Add(cardDatabase.cards[cards[i]]);
+            }
+            usedCount = used;
+        }
     }
 
     private void Update()

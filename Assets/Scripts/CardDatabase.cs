@@ -6,4 +6,12 @@ using UnityEngine;
 public class CardDatabase : ScriptableObject
 {
     public CardData[] cards;
+
+    public void AssignIds()
+    {
+        for (int i = 0; i < cards.Length; ++i)
+        {
+            cards[i].id = i;
+        }
+    }
 }

@@ -125,7 +125,8 @@ public class Player : MonoBehaviour
     public void ClearCards()
     {
         cards.Clear();
-        betText.text = string.Empty;
+        Bet = 0;
+        UpdateBet();
         UpdateValue();
     }
 }

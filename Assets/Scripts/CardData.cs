@@ -13,5 +13,8 @@ public class CardData
     public Sprite sprite;
     public int value;
     public Suit suit;
+
+    [HideInInspector]
+    public int id;
 }
 
