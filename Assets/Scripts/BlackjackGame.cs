@@ -13,21 +13,49 @@ public class BlackjackGame : MonoBehaviour
     public static readonly int ACE_HIGH_VALUE = 11;
     public static readonly int DEALER_LIMIT = 17;
 
+    public static float BlackjackPayout { get; private set; }
+
     public Player dealer;
-    public List<Player> players;
+    public List<Player> playerPool;
     public Deck deck;
     public GameObject betPanel;
     public GameObject actionPanel;
     public GameObject endRoundPanel;
+    public GameObject startPanel;
     public TextMeshProUGUI playerPrompt;
     public BetUI betUI;
+    public TMP_Dropdown numPlayersDropDown;
+    public TMP_InputField startingCashInputField;
+    public TMP_InputField blackjackPayoutInputField;
 
+    List<Player> players;
     int currentPlayer = 0;
     string savePath;
 
     void Start()
     {
         savePath = Application.persistentDataPath + "/save.dat";
+    }
+
+    public void StartGame()
+    {
+        currentPlayer = 0;
+        int numPlayers = numPlayersDropDown.value + 1;
+        int startingCash = int.Parse(startingCashInputField.text);
+        BlackjackPayout = float.Parse(blackjackPayoutInputField.text);
+
+        players = new List<Player>();
+        for (int i = 0; i < numPlayers; ++i)
+        {
+            players.Add(playerPool[i]);
+            playerPool[i].Money = startingCash;
+            playerPool[i].UpdateMoney();
+            playerPool[i].gameObject.SetActive(true);
+        }
+        dealer.gameObject.SetActive(true);
+        deck.StartNewDeck();
+        startPanel.SetActive(false);
+        betPanel.SetActive(true);
         NextBet();
     }
 
@@ -83,14 +111,6 @@ public class BlackjackGame : MonoBehaviour
         Save();
 
         NextPlayer();
-    }
-
-    void Update()
-    {
-        if (Input.GetKeyDown(KeyCode.Return))
-        {
-            Deal();
-        }
     }
 
     public void Hit()
@@ -188,7 +208,7 @@ public class BlackjackGame : MonoBehaviour
         }
     }
 
-    public void EndRound()
+    void ClearCards()
     {
         List<Player> playersToClear = new List<Player>(players);
         playersToClear.Add(dealer);
@@ -201,11 +221,27 @@ public class BlackjackGame : MonoBehaviour
             }
             player.ClearCards();
         }
+    }
 
+    public void EndRound()
+    {
+        ClearCards();
         currentPlayer = 0;
         NextBet();
         betPanel.SetActive(true);
         endRoundPanel.SetActive(false);
+    }
+
+    public void EndGame()
+    {
+        startPanel.SetActive(true);
+        endRoundPanel.SetActive(false);
+        ClearCards();
+        foreach (Player player in players)
+        {
+            player.gameObject.SetActive(false);
+        }
+        dealer.gameObject.SetActive(false);
     }
 
     [System.Serializable]
@@ -270,17 +306,21 @@ public class BlackjackGame : MonoBehaviour
             file.Close();
 
             currentPlayer = gameData.currentPlayer;
-            bool roundInProgress = currentPlayer < players.Count;
+            bool roundInProgress = currentPlayer < gameData.playerData.Count;
 
+            dealer.gameObject.SetActive(true);
             for (int i = 0; i < gameData.dealerCards.Count; ++i)
             {
                 bool faceUp = !roundInProgress || i == 0;
                 dealer.DealCard(deck.SpawnCard(gameData.dealerCards[i], faceUp));
             }
 
+            players = new List<Player>();
             for (int i = 0; i < gameData.playerData.Count; ++i)
             {
                 PlayerData playerData = gameData.playerData[i];
+                players.Add(playerPool[i]);
+                players[i].gameObject.SetActive(true);
                 players[i].Bet = playerData.bet;
                 players[i].Money = playerData.money;
                 players[i].UpdateBet();
@@ -295,6 +335,7 @@ public class BlackjackGame : MonoBehaviour
 
             deck.Initialize(gameData.deckUsedCount, gameData.deckCards);
 
+            startPanel.SetActive(false);
             if (roundInProgress)
             {
                 actionPanel.SetActive(true);

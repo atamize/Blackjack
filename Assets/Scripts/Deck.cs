@@ -15,12 +15,16 @@ public class Deck : MonoBehaviour
     private void Awake()
     {
         cardDatabase.AssignIds();
+        cardPool = new LinkedList<GameObject>();
+    }
+
+    public void StartNewDeck()
+    {
         currentDeck = new List<CardData>();
         for (int i = 0; i < numDecks; ++i)
         {
             currentDeck.AddRange(cardDatabase.cards);
         }
-        cardPool = new LinkedList<GameObject>();
         Shuffle(currentDeck);
     }
 
@@ -95,17 +99,12 @@ public class Deck : MonoBehaviour
     {
         if (cards.Count > 0)
         {
-            currentDeck.Clear();
+            currentDeck = new List<CardData>();
             for (int i = 0; i < cards.Count; ++i)
             {
                 currentDeck.Add(cardDatabase.cards[cards[i]]);
             }
             usedCount = used;
         }
-    }
-
-    private void Update()
-    {
-
     }
 }

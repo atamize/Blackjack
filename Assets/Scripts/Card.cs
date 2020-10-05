@@ -26,14 +26,4 @@ public class Card : MonoBehaviour
     {
         return cardData.value;
     }
-
-    void Start()
-    {
-        
-    }
-
-    private void Update()
-    {
-
-    }
 }

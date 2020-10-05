@@ -15,13 +15,6 @@ public class Player : MonoBehaviour
     public int Money { get; set; }
     public int Bet { get; set; }
 
-    // Start is called before the first frame update
-    void Start()
-    {
-        Money = 100;
-        UpdateMoney();
-    }
-
     public void DealCard(Card card)
     {
         card.transform.parent = cardSlots[cards.Count];
@@ -72,12 +65,14 @@ public class Player : MonoBehaviour
         if (cards.Count == 2 && GetValue() == BlackjackGame.BLACKJACK_GOAL)
         {
             valueText.text = "BLACKJACK";
+            Money += (int)(Bet * BlackjackGame.BlackjackPayout);
         }
         else
         {
             valueText.text = "WIN";
+            Money += Bet;
         }
-        Money += Bet;
+        
         UpdateMoney();
     }
 
